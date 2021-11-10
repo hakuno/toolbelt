@@ -1,0 +1,60 @@
+#!/bin/bash
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+WORKSPACE="$1"
+ELLO="$(whoami)"
+
+# PREVIOUS="$(kubectl config view --minify --output 'jsonpath={..namespace}')"
+# gcloud auth list
+
+# Symbol Link
+# /usr/bin/ctx
+[ "$0" != "/usr/bin/ctx" ] && echo -e "\xE2\xAD\x95 No symlink to PATH."
+
+echo -e "\xE2\xAD\x95 ${YELLOW}Hey, ello ${ELLO}!${NC}"
+
+if [ "${WORKSPACE}" = "" ]
+then
+    echo -e "\xE2\x9B\x94 ${RED}No workspace${NC}. Please, select one (prod, dev, staging)."
+    exit 1
+fi
+
+CURRENT="$(echo -ne $(gcloud config get-value project))"
+
+case "${WORKSPACE}" in
+    prod)
+    DESIRED="project-key"
+    NAMESPACE="default"
+    ;;
+    debug)
+    DESIRED="any"
+    NAMESPACE="any"
+    ;;
+    *)
+    echo -e "\xE2\x9B\x94 Unknown workspace ${RED}${WORKSPACE}${NC}."
+    exit 1
+esac
+
+echo -e "\xE2\x8F\xB3 Locating ${GREEN}${NAMESPACE}${NC}..."
+
+if [ -z "$(gcloud projects list | fgrep $DESIRED)" ]
+then
+    echo -e "\xE2\x9B\x94 Can't find the project ${RED}${DESIRED}${NC}. Have you access right to it?"
+    exit 1
+fi
+
+if [ $CURRENT != $DESIRED ]
+then
+    echo -ne "\xE2\x8F\xB3 "
+    gcloud config set project $DESIRED
+    echo -e "\xE2\x8F\xB3 It's ${DESIRED}."
+else
+    echo -e "\xE2\x98\x95 You're right there."
+fi
+
+[[ "${DESIRED}" = "prod" ]] && echo -e "\xF0\x9F\x9A\xA8 Remember: it's ${WORKSPACE}. Pay attention!"
+
+echo -e "\xE2\x9C\x85 Done!"
+exit 0

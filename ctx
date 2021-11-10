@@ -1,0 +1,77 @@
+#!/bin/bash
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+GRAY='\033[1;30m'
+NC='\033[0m'
+WORKSPACE="$1"
+ELLO="$(whoami)"
+PREVIOUS="$(kubectl config view --minify --output 'jsonpath={..namespace}')"
+
+# Symbol Link
+# /usr/bin/ctx
+[ "$0" != "/usr/bin/ctx" ] && echo -e "\xE2\xAD\x95 No symlink to PATH."
+
+echo -e "\xE2\xAD\x95 ${YELLOW}Hey, ${ELLO}!${NC}"
+
+if [ "${WORKSPACE}" = "" ]
+then
+    echo -e "\xE2\x9B\x94 ${RED}No workspace${NC}. Please, select one (prod, dev, staging)."
+    exit 1
+fi
+
+CURRENT="$(echo -ne $(kubectl config current-context))"
+
+case "${WORKSPACE}" in
+    prod)
+    DESIRED="gke_project_region_clustername"
+    NAMESPACE="ns"
+    ;;
+    debug)
+    DESIRED="any"
+    NAMESPACE="any"
+    ;;
+    local)
+    DESIRED="k3d-local"
+    NAMESPACE="default"
+    ;;
+    *)
+    echo -e "\xE2\x9B\x94 Unknown workspace ${RED}${WORKSPACE}${NC}."
+    exit 1
+esac
+
+echo -e "\xE2\x8F\xB3 Locating ${GREEN}${NAMESPACE}${NC}..."
+
+if [ -z $(kubectl config get-contexts -o name | fgrep $DESIRED) ]
+then
+    echo -e "\xE2\x9B\x94 Can't find the context ${RED}${DESIRED}${NC}. Have you access right to it?"
+
+    [[ "${WORKSPACE}" -eq "staging" ]] && echo -e "\n\xF0\x9F\x92\xA1 Tip: gcloud container clusters get-credentials k8s-dev-01 --zone us-east1-c --project api-project-1097481042879"
+    [[ "${WORKSPACE}" -eq "dev" ]] && echo -e "\n\xF0\x9F\x92\xA1 Tip: gcloud container clusters get-credentials k8s-dev-01 --zone us-east1-c --project api-project-1097481042879"
+
+    exit 1
+fi
+
+echo -e "\xF0\x9F\x92\xBB ${GRAY}kubectl config use-context ${DESIRED}${NC}"
+
+if [ $CURRENT != $DESIRED ]
+then
+    echo -ne "\xE2\x8F\xB3 "
+    kubectl config use-context $DESIRED
+fi
+
+echo -e "\xF0\x9F\x92\xBB ${GRAY}kubectl config set-context --current --namespace=${NAMESPACE}${NC}"
+
+if [ "${NAMESPACE}" = "${PREVIOUS}" ]
+then
+    echo -e "\xE2\x98\x95 You're right there."
+else
+    echo -ne "\xE2\x8F\xB3 "
+    kubectl config set-context --current --namespace=$NAMESPACE
+fi
+
+[[ "${DESIRED}" = "some_prod_cluster" ]] && echo -e "\xF0\x9F\x9A\xA8 Remember: it's ${WORKSPACE}. Pay attention!"
+
+echo -e "\xE2\x9C\x85 Done!"
+
+exit 0

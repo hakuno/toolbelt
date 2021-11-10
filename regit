@@ -1,0 +1,28 @@
+#!/bin/bash
+BRANCH="$1"
+LAST_BRANCH="$(git branch --show-current)"
+
+if [ "${BRANCH}" = "" ]
+then
+    echo -e "\xE2\x9B\x94 No branch specified."
+    exit 1
+fi
+
+if [ "${BRANCH}" = "${LAST_BRANCH}" ]
+then
+    echo -e "\xE2\xAD\x95 Let's do it..."
+    git fetch origin
+    git checkout $BRANCH
+    git reset --hard origin/$BRANCH
+    git clean -d --force
+    exit 0
+fi
+
+if [ "${BRANCH}" != "${LAST_BRANCH}" ]
+then
+    echo -e "\xE2\x9B\x94 Go back! Must do \"git checkout\" to the desired branch before."
+    exit 1
+fi
+
+echo -e "\xE2\x9B\x94 Nothing to do?"
+exit 1
